@@ -13,8 +13,8 @@ def calculate_request_hash(model: BaseModel) -> str:
     2. Sort the keys alphabetically (canonical JSON).
     3. Encode as UTF-8 and hash using SHA-256.
     """
-    # model_dump() returns a dict of the model's data
-    data = model.model_dump()
+    # mode="json" renders datetimes/UUIDs as strings; plain model_dump() keeps them as objects json.dumps rejects.
+    data = model.model_dump(mode="json")
 
     # sort_keys=True ensures canonical representation regardless of attribute order
     canonical_json = json.dumps(data, sort_keys=True, separators=(",", ":"))

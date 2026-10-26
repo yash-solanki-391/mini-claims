@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import BigInteger, CheckConstraint, DateTime, Integer, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
@@ -34,8 +34,9 @@ class Claim(Base):
 
     # Audit timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), nullable=False)
+    # Aware UTC on update: a naive datetime.now() is local wall time, which Postgres would misread as UTC.
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.now, nullable=False
+        DateTime(timezone=True), server_default=text("now()"), onupdate=lambda: datetime.now(UTC), nullable=False
     )
 
     created_by: Mapped[str] = mapped_column(String, nullable=False)

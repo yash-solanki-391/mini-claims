@@ -11,8 +11,10 @@ from .config import settings
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
-    # Set statement timeout to prevent long-running queries from blocking the DB
-    connect_args={"options": "-c statement_timeout=30000"},  # 30 seconds
+    # Set statement timeout to prevent long-running queries from blocking the DB.
+    # timezone=UTC: timestamptz values are returned in the session zone, so without it responses
+    # would carry the server's local offset instead of UTC.
+    connect_args={"options": "-c statement_timeout=30000 -c timezone=UTC"},  # 30 seconds
 )
 
 # SessionLocal is the factory for creating new Session objects
