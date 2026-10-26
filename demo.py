@@ -6,6 +6,9 @@ def get_claim(claim_id, provider_id):
     return {"claim_id": claim_id, 
             
             
+
+
+            
             "provider_id": provider_id}
 
 
