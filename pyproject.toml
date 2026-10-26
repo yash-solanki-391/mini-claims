@@ -1,0 +1,43 @@
+[project]
+name = "mini-claims-api"
+version = "0.1.0"
+description = "Mini Claims API - A learning project for backend standards"
+readme = "README.md"
+requires-python = "==3.12.*"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.3.0",
+    "sqlalchemy>=2.0.0",
+    "psycopg[binary]>=3.1.0",
+    "alembic>=1.13.0",
+    "testcontainers[postgres]>=4.15.0",
+    "structlog>=26.1.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "ruff>=0.5.0",
+    "mypy>=1.10.0",
+    "pre-commit>=3.6.0",
+    "httpx>=0.28.1",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM", "N", "DTZ"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "services.*"
+strict = false

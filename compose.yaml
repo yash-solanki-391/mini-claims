@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mini_claims
+      POSTGRES_PASSWORD: mini_claims
+      POSTGRES_DB: mini_claims
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mini_claims"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
