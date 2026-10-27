@@ -22,7 +22,7 @@ app.add_exception_handler(DomainException, domain_exception_handler)
 
 @app.post("/create")
 def create(ctx: Annotated[RequestContext, Depends(require_permission("claim.create"))]) -> dict[str, str]:
-    return {"tenant_id": ctx.tenant_id, "actor_id": ctx.actor_id}
+    return {"tenant_id": ctx.tenant_id, "user_id": ctx.user_id}
 
 
 client = TestClient(app)
@@ -43,7 +43,7 @@ def _raw_token(secret: str = TEST_SECRET, algorithm: str = "HS256", **overrides:
     claims: dict[str, object] = {
         "iss": demo_auth.ISSUER,
         "aud": demo_auth.AUDIENCE,
-        "sub": "actor-1",
+        "sub": "user-1",
         "tid": "tenant-a",
         "roles": ["claims_submitter"],
         "iat": now,
@@ -59,16 +59,16 @@ def _assert_forbidden(response: Response, message: str) -> None:
 
 
 def test_valid_token_identity_comes_from_claims() -> None:
-    token = demo_auth.issue_demo_token("tenant-a", "actor-1", ["claims_submitter"])
+    token = demo_auth.issue_demo_token("tenant-a", "user-1", ["claims_submitter"])
 
     response = client.post("/create", headers=_bearer(token))
 
     assert response.status_code == 200
-    assert response.json() == {"tenant_id": "tenant-a", "actor_id": "actor-1"}
+    assert response.json() == {"tenant_id": "tenant-a", "user_id": "user-1"}
 
 
 def test_role_without_permission_is_denied() -> None:
-    token = demo_auth.issue_demo_token("tenant-a", "actor-1", ["claims_reader"])
+    token = demo_auth.issue_demo_token("tenant-a", "user-1", ["claims_reader"])
 
     _assert_forbidden(client.post("/create", headers=_bearer(token)), "Missing required permission.")
 
@@ -142,7 +142,7 @@ def test_alg_none_token_is_denied() -> None:
 
 
 def test_valid_token_is_refused_outside_local_and_test(monkeypatch: pytest.MonkeyPatch) -> None:
-    token = demo_auth.issue_demo_token("tenant-a", "actor-1", ["claims_submitter"])
+    token = demo_auth.issue_demo_token("tenant-a", "user-1", ["claims_submitter"])
     monkeypatch.setattr(settings, "APP_ENV", "prod")
 
     _assert_forbidden(
@@ -161,7 +161,7 @@ def test_issuing_is_refused_in_prod(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "APP_ENV", "prod")
 
     with pytest.raises(Forbidden):
-        demo_auth.issue_demo_token("tenant-a", "actor-1", ["claims_submitter"])
+        demo_auth.issue_demo_token("tenant-a", "user-1", ["claims_submitter"])
 
 
 def test_role_mapping_union() -> None:

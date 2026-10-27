@@ -35,7 +35,7 @@ Requests carry a signed demo token, accepted only when `APP_ENV` is `local` or `
 
 Set `DEMO_JWT_SECRET` (at least 32 chars) in `services/claims/.env`, then mint a token:
 ```bash
-TOKEN=$(uv run python -m services.claims.app.core.demo_auth --tenant tenant-a --actor actor-1 --role claims_submitter)
+TOKEN=$(uv run python -m services.claims.app.core.demo_auth --tenant tenant-a --user user-1 --role claims_submitter)
 
 curl -X POST http://localhost:8000/v1/claims/ \
   -H "Authorization: Bearer $TOKEN" \

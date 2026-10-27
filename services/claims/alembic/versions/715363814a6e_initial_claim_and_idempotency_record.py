@@ -51,14 +51,14 @@ def upgrade() -> None:
         "idempotency_record",
         sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column("tenant_id", sa.String(), nullable=False),
-        sa.Column("actor_id", sa.String(), nullable=False),
+        sa.Column("user_id", sa.String(), nullable=False),
         sa.Column("endpoint", sa.String(), nullable=False),
         sa.Column("key", sa.String(length=128), nullable=False),
         sa.Column("request_hash", sa.String(), nullable=False),
         sa.Column("claim_uuid", sa.Uuid(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("tenant_id", "actor_id", "endpoint", "key", name="uq_idempotency_scope"),
+        sa.UniqueConstraint("tenant_id", "user_id", "endpoint", "key", name="uq_idempotency_scope"),
     )
 
 

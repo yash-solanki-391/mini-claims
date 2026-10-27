@@ -6,7 +6,7 @@ DEMO AUTHENTICATION ONLY - NOT PRODUCTION AUTH. A deliberate, learning-only devi
 Works only when APP_ENV is `local` or `test`; the real AtlasIQ service uses the approved shared auth library.
 
 Mint a token locally:
-    uv run python -m services.claims.app.core.demo_auth --tenant tenant-a --actor actor-1 --role claims_submitter
+    uv run python -m services.claims.app.core.demo_auth --tenant tenant-a --user user-1 --role claims_submitter
 """
 
 import argparse
@@ -47,10 +47,10 @@ def _secret() -> str:
     return secret
 
 
-def issue_demo_token(tenant_id: str, actor_id: str, roles: list[str], ttl: timedelta = timedelta(hours=1)) -> str:
+def issue_demo_token(tenant_id: str, user_id: str, roles: list[str], ttl: timedelta = timedelta(hours=1)) -> str:
     """Sign a demo token. Refuses outside local/test, like verification."""
     now = datetime.now(UTC)
-    claims = {"iss": ISSUER, "aud": AUDIENCE, "sub": actor_id, "tid": tenant_id, "roles": roles, "iat": now}
+    claims = {"iss": ISSUER, "aud": AUDIENCE, "sub": user_id, "tid": tenant_id, "roles": roles, "iat": now}
     return jwt.encode({**claims, "exp": now + ttl}, _secret(), algorithm=_ALGORITHM)
 
 
@@ -76,12 +76,12 @@ def verify_demo_token(token: str) -> dict[str, Any]:
         logger.info("auth_token_rejected", reason=type(exc).__name__)
         raise Forbidden("Invalid or expired token.") from exc
 
-    tenant_id, actor_id, roles = claims.get("tid"), claims.get("sub"), claims.get("roles", [])
+    tenant_id, user_id, roles = claims.get("tid"), claims.get("sub"), claims.get("roles", [])
     if not (
         isinstance(tenant_id, str)
         and _IDENTIFIER_PATTERN.match(tenant_id)
-        and isinstance(actor_id, str)
-        and _IDENTIFIER_PATTERN.match(actor_id)
+        and isinstance(user_id, str)
+        and _IDENTIFIER_PATTERN.match(user_id)
         and isinstance(roles, list)
         and all(isinstance(role, str) for role in roles)
     ):
@@ -98,15 +98,15 @@ def permissions_for(roles: list[str]) -> frozenset[str]:
 def _main() -> None:
     parser = argparse.ArgumentParser(description="Mint a local/test-only demo token (NOT production auth).")
     parser.add_argument("--tenant", required=True)
-    parser.add_argument("--actor", required=True)
+    parser.add_argument("--user", required=True)
     parser.add_argument("--role", action="append", default=[], choices=sorted(ROLE_PERMISSIONS), dest="roles")
     parser.add_argument("--ttl-minutes", type=int, default=60)
     args = parser.parse_args()
-    for value in (args.tenant, args.actor):
+    for value in (args.tenant, args.user):
         if not _IDENTIFIER_PATTERN.match(value):
             parser.error(f"invalid identifier: {value!r} (allowed: A-Z a-z 0-9 _ . -, max 64)")
     try:
-        token = issue_demo_token(args.tenant, args.actor, args.roles, timedelta(minutes=args.ttl_minutes))
+        token = issue_demo_token(args.tenant, args.user, args.roles, timedelta(minutes=args.ttl_minutes))
     except Forbidden as exc:
         parser.exit(1, f"error: {exc.message}\n")
     print(token)

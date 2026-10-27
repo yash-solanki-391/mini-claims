@@ -4,7 +4,7 @@
 Accepted (learning project only)
 
 ## Context
-The first demo adapter read tenant, actor and permissions from `X-Demo-*` headers. Any caller could
+The first demo adapter read tenant, user and permissions from `X-Demo-*` headers. Any caller could
 assert any identity or permission, so permission checks proved nothing beyond wiring.
 
 The AtlasIQ standard (`docs/atlasiq_python_standards (1).md`, Security) says:
@@ -17,7 +17,7 @@ Replace the header adapter with a signed demo token, accepted only when `APP_ENV
 - `Authorization: Bearer <JWT>`, HS256, key from `DEMO_JWT_SECRET` (env / `.env`, never committed, min 32 chars).
 - Verified: signature, `exp`, `iss` (`mini-claims-demo-issuer`), `aud` (`mini-claims-api`); `exp`, `iat`, `iss`, `aud`, `sub`
   required; algorithm pinned so `alg: none` and algorithm switching are rejected.
-- Identity from signed claims only: `tid` -> tenant, `sub` -> actor (safe charset, max 64).
+- Identity from signed claims only: `tid` -> tenant, `sub` -> user (safe charset, max 64).
 - Token carries **roles**; the server maps roles to permissions (`ROLE_PERMISSIONS` in `app/core/demo_auth.py`).
   Unknown roles and any `permissions` claim grant nothing.
 - Every failure returns the same 403; the reason is logged as an exception type only, never the token.

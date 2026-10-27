@@ -31,14 +31,14 @@ def _to_response(row: Any) -> ClaimResponse:
 
 class ClaimService:
     """
-    Claim business logic. Tenant and actor are supplied by the caller from RequestContext,
+    Claim business logic. Tenant and user are supplied by the caller from RequestContext,
     never from the request body, path or query.
     """
 
-    def __init__(self, db: Session, tenant_id: str, actor_id: str):
+    def __init__(self, db: Session, tenant_id: str, user_id: str):
         self.db = db
         self.tenant_id = tenant_id
-        self.actor_id = actor_id
+        self.user_id = user_id
 
     def create_claim(self, payload: ClaimCreate, idempotency_key: str, endpoint: str) -> ClaimResponse:
         """
@@ -54,7 +54,7 @@ class ClaimService:
                 existing = self.db.scalars(
                     select(IdempotencyRecord).where(
                         IdempotencyRecord.tenant_id == self.tenant_id,
-                        IdempotencyRecord.actor_id == self.actor_id,
+                        IdempotencyRecord.user_id == self.user_id,
                         IdempotencyRecord.endpoint == endpoint,
                         IdempotencyRecord.key == idempotency_key,
                     )
@@ -70,8 +70,8 @@ class ClaimService:
                     claim_reference=payload.claim_reference,
                     status=payload.status,
                     service_date=payload.service_date,
-                    created_by=self.actor_id,
-                    updated_by=self.actor_id,
+                    created_by=self.user_id,
+                    updated_by=self.user_id,
                 )
                 self.db.add(claim)
                 # Flush to obtain the server-generated claim_uuid for the idempotency record.
@@ -80,7 +80,7 @@ class ClaimService:
                 self.db.add(
                     IdempotencyRecord(
                         tenant_id=self.tenant_id,
-                        actor_id=self.actor_id,
+                        user_id=self.user_id,
                         endpoint=endpoint,
                         key=idempotency_key,
                         request_hash=request_hash,
