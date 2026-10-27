@@ -1,25 +1,23 @@
 """
 Request identity and permission dependencies.
 
-DEMO AUTHENTICATION ONLY - NOT PRODUCTION AUTH. Identity is read from controlled `X-Demo-*` headers and is
-accepted only when APP_ENV is `local` or `test`. The real AtlasIQ service uses the approved shared auth library.
+DEMO AUTHENTICATION ONLY - NOT PRODUCTION AUTH. Identity comes from a signed demo token
+(`Authorization: Bearer <token>`, see app/core/demo_auth.py), accepted only when APP_ENV is `local` or `test`.
+The real AtlasIQ service uses the approved shared auth library.
 """
 
-import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Depends, Header
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from ..core.config import settings
+from ..core.demo_auth import permissions_for, verify_demo_token
 from ..core.exceptions import Forbidden
 
-_DEMO_AUTH_ENVS = frozenset({"local", "test"})
-
-# Header values end up in DB columns (created_by, tenant_id) and log context, so only a safe, bounded charset passes.
-_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z0-9_.\-]{1,64}$")
-_PERMISSION_PATTERN = re.compile(r"^[a-z_]+\.[a-z_]+$")
+# auto_error=False: a missing token is reported through the standard error shape, not FastAPI's default 403 body.
+_bearer = HTTPBearer(auto_error=False, description="Demo token (local/test only). NOT production auth.")
 
 
 @dataclass(frozen=True)
@@ -34,28 +32,21 @@ class RequestContext:
 
 
 def get_request_context(
-    tenant_id: Annotated[str | None, Header(alias="X-Demo-Tenant-Id")] = None,
-    actor_id: Annotated[str | None, Header(alias="X-Demo-Actor-Id")] = None,
-    permissions: Annotated[str | None, Header(alias="X-Demo-Permissions")] = None,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> RequestContext:
     """
-    Build the RequestContext from demo headers. Fails closed outside local/test.
+    Build the RequestContext from a verified demo token. Fails closed outside local/test.
 
-    Errors never echo header values, so identity data cannot leak into responses or logs.
+    Tenant and actor come only from signed claims; permissions come from the server's role mapping,
+    so nothing the client asserts about itself is trusted.
     """
-    if settings.APP_ENV not in _DEMO_AUTH_ENVS:
-        raise Forbidden("Demo authentication is disabled in this environment.")
+    if credentials is None:
+        raise Forbidden("Missing bearer token.")
 
-    if not tenant_id or not _IDENTIFIER_PATTERN.match(tenant_id):
-        raise Forbidden("Missing or invalid tenant identity.")
-    if not actor_id or not _IDENTIFIER_PATTERN.match(actor_id):
-        raise Forbidden("Missing or invalid actor identity.")
-
-    granted = frozenset(p.strip() for p in (permissions or "").split(",") if p.strip())
-    if any(not _PERMISSION_PATTERN.match(p) for p in granted):
-        raise Forbidden("Invalid permissions.")
-
-    return RequestContext(tenant_id=tenant_id, actor_id=actor_id, permissions=granted)
+    claims = verify_demo_token(credentials.credentials)
+    return RequestContext(
+        tenant_id=claims["tid"], actor_id=claims["sub"], permissions=permissions_for(claims.get("roles", []))
+    )
 
 
 def require_permission(permission: str) -> Callable[[RequestContext], RequestContext]:

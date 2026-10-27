@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +21,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str
 
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+
+    # HS256 key for the local/test-only demo token (see app/core/demo_auth.py). Optional so prod never needs it;
+    # SecretStr keeps it out of reprs and logs.
+    DEMO_JWT_SECRET: SecretStr | None = None
 
     # Configures pydantic-settings to read from .env if present.
     # We use extra="ignore" so that a single root .env with variables

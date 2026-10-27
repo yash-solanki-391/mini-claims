@@ -29,6 +29,28 @@ uv run uvicorn services.claims.main:app --reload
 ### 4. Verify
 Visit `http://localhost:8000/health` - should return `{"status": "ok"}`.
 
+### 5. Demo authentication (NOT production auth)
+Requests carry a signed demo token, accepted only when `APP_ENV` is `local` or `test`
+(see [ADR 003](docs/adr/0003-demo-jwt-authentication.md)). The real AtlasIQ service uses the shared auth library.
+
+Set `DEMO_JWT_SECRET` (at least 32 chars) in `services/claims/.env`, then mint a token:
+```bash
+TOKEN=$(uv run python -m services.claims.app.core.demo_auth --tenant tenant-a --actor actor-1 --role claims_submitter)
+
+curl -X POST http://localhost:8000/v1/claims/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: demo-key-001" \
+  -d '{"claim_reference": "DEMO-CLAIM-001"}'
+```
+
+| Role | Permissions |
+| :--- | :--- |
+| `claims_reader` | `claim.read` |
+| `claims_submitter` | `claim.read`, `claim.create` |
+
+Permissions are decided by the server from the token's roles; the token cannot grant them directly.
+
 ## 🛠 Development
 
 ### Testing

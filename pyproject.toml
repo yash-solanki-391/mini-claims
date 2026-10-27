@@ -14,6 +14,7 @@ dependencies = [
     "alembic>=1.13.0",
     "testcontainers[postgres]>=4.15.0",
     "structlog>=26.1.0",
+    "pyjwt>=2.15.1",
 ]
 
 [tool.uv]
@@ -33,6 +34,10 @@ target-version = "py312"
 select = ["E", "F", "I", "B", "UP", "S", "SIM", "N", "DTZ"]
 ignore = []
 
+[tool.ruff.lint.per-file-ignores]
+# pytest relies on bare assert; S101 stays enforced for application code.
+"tests/**" = ["S101"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = false
@@ -41,3 +46,8 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "services.*"
 strict = false
+
+[tool.pytest.ini_options]
+# The repo root is not an installed package; make `services.claims...` importable from tests.
+pythonpath = ["."]
+testpaths = ["tests"]

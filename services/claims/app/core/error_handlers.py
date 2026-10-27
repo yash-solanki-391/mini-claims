@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -60,8 +62,13 @@ def generic_exception_handler(request: Request, exc: Exception):
     """
     correlation_id = getattr(request.state, "correlation_id", "unknown")
 
-    # Log the actual exception with full traceback
-    logger.error("unhandled_exception", error=str(exc), correlation_id=correlation_id, exc_info=True)
+    # Type and frame locations only: exception messages (e.g. DB IntegrityError) can embed row values / PHI.
+    logger.error(
+        "unhandled_exception",
+        error_type=type(exc).__name__,
+        frames=[f"{f.filename}:{f.lineno} in {f.name}" for f in traceback.extract_tb(exc.__traceback__)],
+        correlation_id=correlation_id,
+    )
 
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -72,6 +79,8 @@ def generic_exception_handler(request: Request, exc: Exception):
                 "correlation_id": correlation_id,
             }
         ).model_dump(),
+        # Starlette answers unhandled errors outside the middleware stack, so the header is set here.
+        headers={"X-Correlation-ID": correlation_id},
     )
 
 

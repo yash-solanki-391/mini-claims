@@ -10,8 +10,12 @@ from services.claims.app.core.error_handlers import (
     validation_exception_handler,
 )
 from services.claims.app.core.exceptions import Conflict, DomainException, Forbidden, NotFound
+from services.claims.app.middleware.correlation import CorrelationIdMiddleware
 
 app = FastAPI(title="Mini Claims API", description="Learning project practicing AtlasIQ backend standards.")
+
+# --- Middleware ---
+app.add_middleware(CorrelationIdMiddleware)
 
 # --- Error Handlers ---
 app.add_exception_handler(Exception, generic_exception_handler)
